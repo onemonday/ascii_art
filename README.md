@@ -21,6 +21,7 @@ This program converts your picture to ASCII-art .txt file.
 ## Aurhors
 
 Andreeva Ekaterina Alekseevna
+
 Dreshpak Kirill Aleksandrovich
 
 КБ-201
