@@ -26,7 +26,7 @@ def map_pixel_to_ascii(pixel):
     return ASCII_CHARS[int(grayscale_value / interval_size)]
 
 
-def convert_image_to_ascii(image):
+def convert_image_to_ascii(image, args):
     image = resize_image(image)
 
     pixels = list(image.getdata())
@@ -41,21 +41,19 @@ def convert_image_to_ascii(image):
         ascii_art_image += ascii_characters[i:line_end] + '\n'
 
     try:
-        file = open(sys.argv[2], 'w', encoding='utf8', errors='ignore')
-        print(type(file))
+        file = open(args[2], 'w', encoding='utf8', errors='ignore')
         file.write(ascii_art_image)
         file.close()
+        return "Success!"
     except FileNotFoundError:
-        print("ERROR: output file directory is incorrect")
-        sys.exit(1)
+        return "ERROR: output file directory is incorrect"
 
-
-if __name__ == "__main__":
+def initial_checkup(args):
     try:
-        image_path = sys.argv[1]
+        image_path = args[1]
 
         if image_path == "--help" or image_path == "-h":
-            print("This program converts your picture to ASCII-art .txt file."
+            return("This program converts your picture to ASCII-art .txt file."
                   "\n\n"
                   "Arguments:\n\n"
                   "Argument 1:"
@@ -63,25 +61,23 @@ if __name__ == "__main__":
                   "{$pic_path}: path to the picture\n\n"
                   "Argument 2:\n"
                   "{$txt_path}: path to the output in .txt extension")
-            sys.exit(0)
 
         # existence check
         regex = re.compile(r'.*\.txt\Z')
-        if regex.search(sys.argv[2]) is not None:
-            print("ERROR: output file is not in .txt extension")
-            sys.exit(2)
+        if regex.search(args[2]) is None:
+            return "ERROR: output file is not in .txt extension"
 
     except IndexError:
-        print("ERROR: path not assigned. Please type path to the picture and txt in argv")
-        sys.exit(1)
+        return "ERROR: path not assigned. Please type path to the picture and txt in argv"
 
     try:
         image = Image.open(image_path)
     except FileNotFoundError:
-        print("ERROR: picture not found or path to the picture is incorrect.")
-        sys.exit(1)
+        return "ERROR: picture not found or path to the picture is incorrect."
     except PIL.UnidentifiedImageError:
-        print("ERROR: picture file is unsupported or corrupted.")
-        sys.exit(2)
+        return "ERROR: picture file is unsupported or corrupted."
 
-    convert_image_to_ascii(image)
+    return convert_image_to_ascii(image, args)
+
+if __name__ == "__main__":
+    print(initial_checkup(args=sys.argv))
