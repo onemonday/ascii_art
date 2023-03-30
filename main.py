@@ -48,19 +48,20 @@ def convert_image_to_ascii(image, args):
     except FileNotFoundError:
         return "ERROR: output file directory is incorrect"
 
+
 def initial_checkup(args):
     try:
         image_path = args[1]
 
         if image_path == "--help" or image_path == "-h":
-            return("This program converts your picture to ASCII-art .txt file."
-                  "\n\n"
-                  "Arguments:\n\n"
-                  "Argument 1:"
-                  "--help, -h: help page\n"
-                  "{$pic_path}: path to the picture\n\n"
-                  "Argument 2:\n"
-                  "{$txt_path}: path to the output in .txt extension")
+            return ("This program converts your picture to ASCII-art .txt file."
+                    "\n\n"
+                    "Arguments:\n\n"
+                    "Argument 1:"
+                    "--help, -h: help page\n"
+                    "{$pic_path}: path to the picture\n\n"
+                    "Argument 2:\n"
+                    "{$txt_path}: path to the output in .txt extension")
 
         # existence check
         regex = re.compile(r'.*\.txt\Z')
@@ -78,6 +79,7 @@ def initial_checkup(args):
         return "ERROR: picture file is unsupported or corrupted."
 
     return convert_image_to_ascii(image, args)
+
 
 if __name__ == "__main__":
     print(initial_checkup(args=sys.argv))
