@@ -1,8 +1,13 @@
 import runpy
 import unittest
 import sys
+from typing import IO
+from unittest.mock import Mock, MagicMock
+
+# import mock as mock
 
 import main
+from PIL import Image
 
 
 class MyTestCase(unittest.TestCase):
@@ -47,6 +52,30 @@ class MyTestCase(unittest.TestCase):
         args = ["main.py", "qwerty.qwerty", "qwerty.txt"]
         self.assertEqual(main.initial_checkup(args),
                          "ERROR: picture not found or path to the picture is incorrect.")
+
+    def test_image_resize(self):
+        image = Image.new("RGB", (1280, 720), "red")
+        main.resize_image(image)
+        self.assertEqual((400, 225), main.resize_image(image).size)
+
+    def test_conversion_to_ascii(self):
+        pixel1 = (0, 0, 0)
+        pixel2 = (255, 255, 255)
+        pixel3 = (45, 23, 124)
+        self.assertEqual(' ', main.map_pixel_to_ascii(pixel1))
+        self.assertEqual('@', main.map_pixel_to_ascii(pixel2))
+        self.assertEqual('"', main.map_pixel_to_ascii(pixel3))
+
+    # def test_drawing_ascii_txt(self):
+    #     image = Image.new("RGB", (600, 600), "red")
+    #     args = ["main.py", "test_pic.png", "test_output.txt"]
+    #
+    #     # надо спросить про то, как сделать Mock работы с файлом
+    #     open = Mock(return_value=None)
+    #     IO.write = Mock(return_value=None)
+    #     IO.close = Mock(return_value=None)
+    #
+    #     self.assertEqual("Success!", main.convert_image_to_ascii(image, args))
 
 
 if __name__ == '__main__':
