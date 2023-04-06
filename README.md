@@ -2,21 +2,22 @@
 
 This program converts your picture to ASCII-art .txt file.
 
-## Arguments:
+usage: ascii.py [-h] [-od OUTPUT_DIR] [-w WIDTH] image
 
-### Argument 1:
+positional arguments:
+  image                 path to the image
 
---help, -h: help page
-
-{$pic_path}: path to the picture
-
-### Argument 2:
-
-{$txt_path}: path to the output in .txt extension
+options:
+  -h, --help            show this help message and exit
+  -od OUTPUT_DIR, --output_dir OUTPUT_DIR
+                        output directory
+  -w WIDTH, --width WIDTH
+                        width of ASCII-art file
 
 ## Example
-
-<python main.py "C:\yp\our_picture.png" "C:\ascii.txt"
+python ascii.py "C:\Users\karak\Desktop\meme.png"
+python ascii.py "C:\Users\karak\Desktop\meme.png" -w 500
+python ascii.py "C:\Users\karak\Desktop\meme.png" -w 500 -od python ascii.py "C:\Users\karak\Desktop"
 
 ## Aurhors
 
