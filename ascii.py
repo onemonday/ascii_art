@@ -6,6 +6,10 @@ import logging
 import PIL
 from PIL import Image
 
+RED_COEFF = 0.2126
+GREEN_COEFF = 0.7152
+BLUE_COEFF = 0.0722
+
 ASCII_CHARS = r" '.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
 
 
@@ -32,7 +36,7 @@ def get_pixel_brightness(pixel):
     """
     r, g, b = pixel
     # formula of pixel brightness
-    return int((0.2126 * r) + (0.7152 * g) + (0.0722 * b))
+    return int((RED_COEFF * r) + (GREEN_COEFF * g) + (BLUE_COEFF * b))
 
 
 def map_pixel_to_ascii(pixel):
