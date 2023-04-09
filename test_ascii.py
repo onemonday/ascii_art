@@ -1,13 +1,6 @@
-import runpy
 import unittest
-import sys
-from typing import IO
-from unittest.mock import Mock, MagicMock
-
+from unittest.mock import Mock
 import PIL
-
-# import mock as mock
-
 import ascii
 from PIL import Image
 
