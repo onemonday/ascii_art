@@ -1,6 +1,7 @@
 import os.path
 import argparse
 import sys
+import logging
 
 import PIL
 from PIL import Image
@@ -56,15 +57,14 @@ def convert_image_to_ascii(image, args):
     :param args: parsed console arguments
     :return: string declaring program status
     """
-    try:
-        if args.width is None:
-            pass
-        elif args.width > 0:
-            image = resize_image(image, args.width)
-        else:
-            print("You have entered width below zero. Your ASCII-art will be the same size as your picture")
-    except IndexError:
-        pass
+    if args.width is None:
+        logging.info("custom width was not defined. " +
+                     "ASCII-art will be the same size as the picture")
+    elif args.width > 0:
+        image = resize_image(image, args.width)
+    else:
+        logging.warning("user has entered width below zero. " +
+                        "ASCII-art will be the same size as the picture")
 
     pixels = list(image.convert(mode="RGB").getdata())
     ascii_characters = [map_pixel_to_ascii(pixel) for pixel in pixels]
@@ -77,7 +77,7 @@ def convert_image_to_ascii(image, args):
         line_end = i + width
         ascii_art_image += ascii_characters[i:line_end] + '\n'
 
-    return write_to_file(construct_output_filename(args), ascii_art_image)
+    write_to_file(construct_output_filename(args), ascii_art_image)
 
 
 def construct_output_filename(args):
@@ -109,9 +109,10 @@ def write_to_file(output_filename, ascii_art_image):
     try:
         with open(output_filename, 'w', encoding='utf8', errors='ignore') as file:
             file.write(ascii_art_image)
-            return "Success!"
+            logging.info("image has converted to ASCII-art")
     except FileNotFoundError:
-        return "ERROR: output file directory is incorrect"
+        logging.error("output file directory is incorrect")
+        sys.exit(3)
 
 
 def parse_arguments(args):
@@ -141,12 +142,15 @@ def initial_checkup(args):
     try:
         image = Image.open(args.image)
     except FileNotFoundError:
-        return "ERROR: picture not found or path to the picture is incorrect."
+        logging.error("picture not found or path to the picture is incorrect")
+        sys.exit(1)
     except PIL.UnidentifiedImageError:
-        return "ERROR: picture file is unsupported or corrupted."
+        logging.error("picture file is unsupported or corrupted")
+        sys.exit(1)
 
     return convert_image_to_ascii(image, args)
 
 
 if __name__ == "__main__":
-    print(initial_checkup(parse_arguments(sys.argv[1:])))
+    logging.basicConfig(level=logging.INFO)
+    initial_checkup(parse_arguments(sys.argv[1:]))
