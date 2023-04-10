@@ -5,12 +5,17 @@ import logging
 
 import PIL
 from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 
 RED_COEFF = 0.2126
 GREEN_COEFF = 0.7152
 BLUE_COEFF = 0.0722
 
-ASCII_CHARS = r" '.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+JPG_CHAR_SAFE_BOX = 6
+
+ASCII_CHARS = r"'.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+ASCII_CHARS = ASCII_CHARS[::-1]
 
 
 def resize_image(image, new_width):
@@ -81,8 +86,32 @@ def convert_image_to_ascii(image, args):
         line_end = i + width
         ascii_art_image += ascii_characters[i:line_end] + '\n'
 
-    write_to_file(construct_output_filename(args), ascii_art_image)
+    if args.mode == "c":
+        draw_colored_image(ascii_art_image, pixels, image.size, construct_output_filename(args))
+    elif args.mode == "bw":
+        write_to_file(construct_output_filename(args), ascii_art_image)
 
+
+def draw_colored_image(ascii_art_string, pixels, size, output_file):
+    width, height = size[0] * JPG_CHAR_SAFE_BOX, size[1] * JPG_CHAR_SAFE_BOX
+
+    output_image = Image.new(mode="RGB", size=(width, height), color="white")
+    font = ImageFont.truetype("Anonymous_Pro.ttf")
+    draw = ImageDraw.Draw(output_image)
+
+    x, y = 0, 0
+    char_index = 0
+    for char in ascii_art_string:
+        if char == '\n':
+            y += JPG_CHAR_SAFE_BOX
+            x = 0
+            continue
+
+        draw.text((x, y), text=char, fill=pixels[char_index], font=font)
+        x += JPG_CHAR_SAFE_BOX
+        char_index += 1
+
+    output_image.save(output_file)
 
 def construct_output_filename(args):
     """
@@ -96,7 +125,10 @@ def construct_output_filename(args):
     output_file = args.output_dir
     if output_file is None:
         output_file = os.path.dirname(args.image)
-    output_file += os.sep + "ascii.txt"
+    if args.mode == "bw":
+        output_file += os.sep + "ascii.txt"
+    elif args.mode == "c":
+        output_file += os.sep + "ascii.png"
     return output_file
 
 
@@ -109,7 +141,6 @@ def write_to_file(output_filename, ascii_art_image):
                             image (look convert_image_to_ascii)
     :return: string declaring program status
     """
-
     try:
         with open(output_filename, 'w', encoding='utf8', errors='ignore') as file:
             file.write(ascii_art_image)
@@ -131,6 +162,7 @@ def parse_arguments(args):
     parser.add_argument("image", help="path to the image")
     parser.add_argument("-od", "--output_dir", type=str, help="output directory")
     parser.add_argument("-w", "--width", type=int, help="width of ASCII-art file")
+    parser.add_argument("-m", "--mode", type=str, required=True, help="program mode: colored (c) or monochrome (bw)", choices=("c", "bw"))
     return parser.parse_args(args)
 
 
