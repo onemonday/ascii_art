@@ -15,8 +15,6 @@ BLUE_COEFF = 0.0722
 JPG_CHAR_SAFE_BOX = 6
 
 ASCII_CHARS = r"'.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
-ASCII_CHARS = ASCII_CHARS[::-1]
-
 
 def resize_image(image: Image, new_width: int):
     """
@@ -75,6 +73,10 @@ def convert_image_to_ascii(image: Image, args: argparse):
         logging.warning("user has entered width below zero. " +
                         "ASCII-art will be the same size as the picture")
 
+    if args.mode == "c":
+        global ASCII_CHARS
+        ASCII_CHARS = ASCII_CHARS[::-1]
+
     pixels = list(image.convert(mode="RGB").getdata())
     ascii_characters = [map_pixel_to_ascii(pixel) for pixel in pixels]
 
@@ -120,7 +122,11 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_
         x += JPG_CHAR_SAFE_BOX
         char_index += 1
 
-    output_image.save(output_file)
+    try:
+        output_image.save(output_file)
+        logging.info("image has converted to ASCII-art")
+    except FileNotFoundError:
+        logging.error("output file directory is incorrect")
 
 
 def construct_output_filename(args: argparse):
