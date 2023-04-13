@@ -147,10 +147,10 @@ def initial_checkup(args):
         image = Image.open(args.image)
     except FileNotFoundError:
         logging.error("picture not found or path to the picture is incorrect")
-        sys.exit(1)
+        return
     except PIL.UnidentifiedImageError:
         logging.error("picture file is unsupported or corrupted")
-        sys.exit(1)
+        return
 
     return convert_image_to_ascii(image, args)
 
