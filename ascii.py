@@ -18,7 +18,7 @@ ASCII_CHARS = r"'.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#M
 ASCII_CHARS = ASCII_CHARS[::-1]
 
 
-def resize_image(image, new_width):
+def resize_image(image: Image, new_width: int):
     """
     Resizes the image depending on selected
 
@@ -32,7 +32,7 @@ def resize_image(image, new_width):
     return image.resize((new_width, new_height))
 
 
-def get_pixel_brightness(pixel):
+def get_pixel_brightness(pixel: tuple):
     """
     Calculates the pixel brightness
 
@@ -44,7 +44,7 @@ def get_pixel_brightness(pixel):
     return int((RED_COEFF * r) + (GREEN_COEFF * g) + (BLUE_COEFF * b))
 
 
-def map_pixel_to_ascii(pixel):
+def map_pixel_to_ascii(pixel: tuple):
     """
     Matches pixel with ASCII-character depending on it's brightness
 
@@ -58,7 +58,7 @@ def map_pixel_to_ascii(pixel):
     return ASCII_CHARS[int(grayscale_value / interval_size)]
 
 
-def convert_image_to_ascii(image, args):
+def convert_image_to_ascii(image: Image, args: argparse):
     """
     Converts image into ASCII-art string which is written to the .txt file
 
@@ -92,7 +92,16 @@ def convert_image_to_ascii(image, args):
         write_to_file(construct_output_filename(args), ascii_art_image)
 
 
-def draw_colored_image(ascii_art_string, pixels, size, output_file):
+def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_file: str):
+    """
+        Draws ASCII-art strinng into the PIL image and saves it
+
+        :param ascii_art_string: string representation of
+                                 image (look convert_image_to_ascii)
+        :param pixels: list of RGB-tuples representing an image
+        :param size: image size
+        :param output_file: output filename
+        """
     width, height = size[0] * JPG_CHAR_SAFE_BOX, size[1] * JPG_CHAR_SAFE_BOX
 
     output_image = Image.new(mode="RGB", size=(width, height), color="white")
@@ -113,7 +122,8 @@ def draw_colored_image(ascii_art_string, pixels, size, output_file):
 
     output_image.save(output_file)
 
-def construct_output_filename(args):
+
+def construct_output_filename(args: argparse):
     """
     Constructs output filename depending on user's choice.
     If user typed output directory in -od, output file will be there.
@@ -132,7 +142,7 @@ def construct_output_filename(args):
     return output_file
 
 
-def write_to_file(output_filename, ascii_art_image):
+def write_to_file(output_filename: str, ascii_art_image: str):
     """
     Writes ASCII-art string to file
 
@@ -150,7 +160,7 @@ def write_to_file(output_filename, ascii_art_image):
         sys.exit(3)
 
 
-def parse_arguments(args):
+def parse_arguments(args: argparse):
     """
     Parse list of arguments via argparse
 
@@ -162,11 +172,12 @@ def parse_arguments(args):
     parser.add_argument("image", help="path to the image")
     parser.add_argument("-od", "--output_dir", type=str, help="output directory")
     parser.add_argument("-w", "--width", type=int, help="width of ASCII-art file")
-    parser.add_argument("-m", "--mode", type=str, required=True, help="program mode: colored (c) or monochrome (bw)", choices=("c", "bw"))
+    parser.add_argument("-m", "--mode", type=str, required=True, help="program mode: colored (c) or monochrome (bw)",
+                        choices=("c", "bw"))
     return parser.parse_args(args)
 
 
-def initial_checkup(args):
+def initial_checkup(args: argparse):
     """
     Initial function: tries to open the image
     and call the convert_image_to_ascii function
