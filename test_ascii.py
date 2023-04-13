@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock
 import PIL
 import ascii
+import logging
 from PIL import Image
 
 
@@ -15,19 +16,22 @@ class MyTestCase(unittest.TestCase):
 
     def test_random_pic_argument(self):
         args = ["qwerty"]
-        self.assertEqual(ascii.initial_checkup(ascii.parse_arguments(args)),
-                         "ERROR: picture not found or path to the picture is incorrect.")
+        with self.assertLogs('root', level='INFO') as cm:
+            ascii.initial_checkup(ascii.parse_arguments(args))
+        self.assertEqual(["ERROR:root:picture not found or path to the picture is incorrect"], cm.output)
 
     def test_random_pic_extension(self):
         args = ["qwerty.qwerty"]
-        self.assertEqual(ascii.initial_checkup(ascii.parse_arguments(args)),
-                         "ERROR: picture not found or path to the picture is incorrect.")
+        with self.assertLogs('root', level='INFO') as cm:
+            ascii.initial_checkup(ascii.parse_arguments(args))
+        self.assertEqual(["ERROR:root:picture not found or path to the picture is incorrect"], cm.output)
 
     def test_unidentified_image_error(self):
         args = ["qwerty.qwerty"]
         Image.open = Mock(side_effect=PIL.UnidentifiedImageError)
-        self.assertEqual("ERROR: picture file is unsupported or corrupted.",
-                         ascii.initial_checkup(ascii.parse_arguments(args)))
+        with self.assertLogs('root', level='INFO') as cm:
+            ascii.initial_checkup(ascii.parse_arguments(args))
+        self.assertEqual(["ERROR:root:picture file is unsupported or corrupted"], cm.output)
 
     def test_image_resize(self):
         image = Image.new("RGB", (1280, 720), "red")
@@ -55,12 +59,17 @@ class MyTestCase(unittest.TestCase):
                          ascii.construct_output_filename(args_parsed))
 
     def test_drawing_ascii_txt(self):
-        image = Image.new("RGB", (600, 600), "red")
+        image = Image.new("RGB", (5, 5), "red")
         args = ["test_pic.png"]
-        ascii.write_to_file = Mock(return_value="Success!")
 
-        self.assertEqual("Success!",
-                         ascii.convert_image_to_ascii(image, ascii.parse_arguments(args)))
+        with self.assertLogs('root', level='INFO') as cm:
+            ascii.write_to_file = Mock(side_effect=logging.info("image has converted to ASCII-art"),
+                                       return_value=None)
+            ascii.convert_image_to_ascii(image, ascii.parse_arguments(args))
+        self.assertEqual(["INFO:root:image has converted to ASCII-art",
+                          "INFO:root:custom width was not defined. " +
+                          "ASCII-art will be the same size as the picture"],
+                         cm.output)
 
 
 if __name__ == '__main__':
