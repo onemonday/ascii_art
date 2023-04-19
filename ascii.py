@@ -12,9 +12,11 @@ RED_COEFF = 0.2126
 GREEN_COEFF = 0.7152
 BLUE_COEFF = 0.0722
 
-JPG_CHAR_SAFE_BOX = 6
+JPG_CHAR_SAFE_BOX_WIDTH = 4
+JPG_CHAR_SAFE_BOX_HEIGHT = 4
 
-ASCII_CHARS = r"'.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+# ASCII_CHARS = r"'.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+ASCII_CHARS = r"`.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"
 
 def resize_image(image: Image, new_width: int):
     """
@@ -104,7 +106,7 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_
         :param size: image size
         :param output_file: output filename
         """
-    width, height = size[0] * JPG_CHAR_SAFE_BOX, size[1] * JPG_CHAR_SAFE_BOX
+    width, height = size[0] * JPG_CHAR_SAFE_BOX_WIDTH, size[1] * JPG_CHAR_SAFE_BOX_HEIGHT
 
     output_image = Image.new(mode="RGB", size=(width, height), color="white")
     font = ImageFont.truetype("Anonymous_Pro.ttf")
@@ -114,12 +116,12 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_
     char_index = 0
     for char in ascii_art_string:
         if char == '\n':
-            y += JPG_CHAR_SAFE_BOX
+            y += JPG_CHAR_SAFE_BOX_HEIGHT
             x = 0
             continue
 
         draw.text((x, y), text=char, fill=pixels[char_index], font=font)
-        x += JPG_CHAR_SAFE_BOX
+        x += JPG_CHAR_SAFE_BOX_WIDTH
         char_index += 1
 
     try:
