@@ -1,3 +1,4 @@
+import enum
 import os.path
 import argparse
 import sys
@@ -15,12 +16,21 @@ BLUE_COEFF = 0.0722
 JPG_CHAR_SAFE_BOX_WIDTH = 4
 JPG_CHAR_SAFE_BOX_HEIGHT = 4
 
-# ASCII_CHARS = r"'.'`^\",:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+FONT = "Anonymous_Pro.ttf"
 ASCII_CHARS = r"`.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@"
 
-def resize_image(image: Image, new_width: int):
+
+class Modes(enum.Enum):
     """
-    Resizes the image depending on selected
+    Enum class for modes
+    """
+    BW = "bw"
+    COLOR = "c"
+
+
+def resize_image(image: Image, new_width: int) -> Image:
+    """
+    Resizes the image depending on selected width
 
     :param image: PIL Image object
     :param new_width: positive integer with new width
@@ -75,7 +85,7 @@ def convert_image_to_ascii(image: Image, args: argparse):
         logging.warning("user has entered width below zero. " +
                         "ASCII-art will be the same size as the picture")
 
-    if args.mode == "c":
+    if args.mode == Modes.COLOR.value:
         global ASCII_CHARS
         ASCII_CHARS = ASCII_CHARS[::-1]
 
@@ -85,15 +95,18 @@ def convert_image_to_ascii(image: Image, args: argparse):
     width, height = image.size
     ascii_characters = ''.join(ascii_characters)
 
-    ascii_art_image = ''
+    ascii_art_image = list()
     for i in range(0, len(ascii_characters), width):
         line_end = i + width
-        ascii_art_image += ascii_characters[i:line_end] + '\n'
+        ascii_art_image.append(ascii_characters[i:line_end])
+        ascii_art_image.append('\n')
 
-    if args.mode == "c":
-        draw_colored_image(ascii_art_image, pixels, image.size, construct_output_filename(args))
-    elif args.mode == "bw":
-        write_to_file(construct_output_filename(args), ascii_art_image)
+    ascii_art_image_str = ''.join(ascii_art_image)
+
+    if args.mode == Modes.COLOR.value:
+        draw_colored_image(ascii_art_image_str, pixels, image.size, construct_output_filename(args))
+    elif args.mode == Modes.BW.value:
+        write_to_file(construct_output_filename(args), ascii_art_image_str)
 
 
 def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_file: str):
@@ -109,7 +122,7 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_
     width, height = size[0] * JPG_CHAR_SAFE_BOX_WIDTH, size[1] * JPG_CHAR_SAFE_BOX_HEIGHT
 
     output_image = Image.new(mode="RGB", size=(width, height), color="white")
-    font = ImageFont.truetype("Anonymous_Pro.ttf")
+    font = ImageFont.truetype(FONT)
     draw = ImageDraw.Draw(output_image)
 
     x, y = 0, 0
@@ -143,9 +156,9 @@ def construct_output_filename(args: argparse):
     output_file = args.output_dir
     if output_file is None:
         output_file = os.path.dirname(args.image)
-    if args.mode == "bw":
+    if args.mode == Modes.BW.value:
         output_file += os.sep + "ascii.txt"
-    elif args.mode == "c":
+    elif args.mode == Modes.COLOR.value:
         output_file += os.sep + "ascii.png"
     return output_file
 
