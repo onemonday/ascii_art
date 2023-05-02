@@ -5,9 +5,12 @@ import sys
 import logging
 
 import PIL
+import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
+import cv2
+
 
 RED_COEFF = 0.2126
 GREEN_COEFF = 0.7152
@@ -26,6 +29,7 @@ class Modes(enum.Enum):
     """
     BW = "bw"
     COLOR = "c"
+    VIDEO = "v"
 
 
 def resize_image(image: Image, new_width: int) -> Image:
@@ -68,7 +72,7 @@ def map_pixel_to_ascii(pixel: tuple):
     return ASCII_CHARS[int(grayscale_value / interval_size)]
 
 
-def convert_image_to_ascii(image: Image, args: argparse):
+def convert_image_to_ascii(image: Image, args: argparse, is_video: bool = False):
     """
     Converts image into ASCII-art string which is written to the .txt file
 
@@ -76,12 +80,12 @@ def convert_image_to_ascii(image: Image, args: argparse):
     :param args: parsed console arguments
     :return: string declaring program status
     """
-    if args.width is None:
+    if args.width is None and not is_video:
         logging.info("custom width was not defined. " +
                      "ASCII-art will be the same size as the picture")
     elif args.width > 0:
         image = resize_image(image, args.width)
-    else:
+    elif args.width < 0 and not is_video:
         logging.warning("user has entered width below zero. " +
                         "ASCII-art will be the same size as the picture")
 
@@ -103,13 +107,22 @@ def convert_image_to_ascii(image: Image, args: argparse):
 
     ascii_art_image_str = ''.join(ascii_art_image)
 
+    if is_video:
+        return draw_colored_image(ascii_art_image_str, pixels, image.size)
+
     if args.mode == Modes.COLOR.value:
-        draw_colored_image(ascii_art_image_str, pixels, image.size, construct_output_filename(args))
+        output_image = draw_colored_image(ascii_art_image_str, pixels, image.size)
+        try:
+            output_image.save(construct_output_filename(args))
+            logging.info("image has converted to ASCII-art")
+        except FileNotFoundError:
+            logging.error("output file directory is incorrect")
+
     elif args.mode == Modes.BW.value:
         write_to_file(construct_output_filename(args), ascii_art_image_str)
 
 
-def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_file: str):
+def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple):
     """
         Draws ASCII-art strinng into the PIL image and saves it
 
@@ -121,7 +134,7 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_
         """
     width, height = size[0] * JPG_CHAR_SAFE_BOX_WIDTH, size[1] * JPG_CHAR_SAFE_BOX_HEIGHT
 
-    output_image = Image.new(mode="RGB", size=(width, height), color="white")
+    output_image = Image.new(mode="RGB", size=(width, height), color="black")
     font = ImageFont.truetype(FONT)
     draw = ImageDraw.Draw(output_image)
 
@@ -137,11 +150,39 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple, output_
         x += JPG_CHAR_SAFE_BOX_WIDTH
         char_index += 1
 
+    return output_image
+
+
+def convert_video_to_ascii(args: argparse):
     try:
-        output_image.save(output_file)
-        logging.info("image has converted to ASCII-art")
+        video = cv2.VideoCapture(args.image)
     except FileNotFoundError:
-        logging.error("output file directory is incorrect")
+        logging.error("video file was not found")
+        return
+
+    if args.width is None:
+        logging.info("custom width was not defined. " +
+                     "ASCII-art will be the same size as the video")
+    elif args.width < 0:
+        logging.warning("user has entered width below zero. " +
+                        "ASCII-art will be the same size as the picture")
+
+    # output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*"MJPG"), video.get(cv2.CAP_PROP_FPS), (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+    while True:
+        _,image = video.read()
+        if image is None:
+            break
+        image = Image.fromarray(image)
+        ascii_image = convert_image_to_ascii(image, args, is_video=True)
+
+        # output.write(np.array(ascii_image))
+        cv2.imshow('ASCII-art', np.array(ascii_image))
+        key = cv2.waitKey(1)
+        if key == ord("q"):
+            break
+    video.release()
+    # output.release()
+    cv2.destroyAllWindows()
 
 
 def construct_output_filename(args: argparse):
@@ -160,6 +201,8 @@ def construct_output_filename(args: argparse):
         output_file += os.sep + "ascii.txt"
     elif args.mode == Modes.COLOR.value:
         output_file += os.sep + "ascii.png"
+    elif args.mode == Modes.VIDEO.value:
+        output_file += os.sep + "ascii.avi"
     return output_file
 
 
@@ -194,7 +237,7 @@ def parse_arguments(args: argparse):
     parser.add_argument("-od", "--output_dir", type=str, help="output directory")
     parser.add_argument("-w", "--width", type=int, help="width of ASCII-art file")
     parser.add_argument("-m", "--mode", type=str, required=True, help="program mode: colored (c) or monochrome (bw)",
-                        choices=("c", "bw"))
+                        choices=("c", "bw", "v"))
     return parser.parse_args(args)
 
 
@@ -207,6 +250,10 @@ def initial_checkup(args: argparse):
     :param args: parsed console arguments
     :return: string declaring program status
     """
+
+    if args.mode == Modes.VIDEO.value:
+        return convert_video_to_ascii(args)
+
     try:
         image = Image.open(args.image)
     except FileNotFoundError:
