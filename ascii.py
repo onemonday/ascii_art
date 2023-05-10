@@ -160,14 +160,24 @@ def convert_video_to_ascii(args: argparse):
         logging.error("video file was not found")
         return
 
+    new_height, new_width = None, None
+
     if args.width is None:
         logging.info("custom width was not defined. " +
                      "ASCII-art will be the same size as the video")
+        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     elif args.width < 0:
         logging.warning("user has entered width below zero. " +
                         "ASCII-art will be the same size as the picture")
+        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    elif args.width > 0:
+        ratio = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) / int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        new_height = int(args.width * ratio)
+        new_width = args.width
 
-    # output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*"MJPG"), video.get(cv2.CAP_PROP_FPS), (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+    output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*'DIVX'), video.get(cv2.CAP_PROP_FPS), (new_width, new_height))
     while True:
         _,image = video.read()
         if image is None:
@@ -175,13 +185,13 @@ def convert_video_to_ascii(args: argparse):
         image = Image.fromarray(image)
         ascii_image = convert_image_to_ascii(image, args, is_video=True)
 
-        # output.write(np.array(ascii_image))
+        output.write(np.array(ascii_image))
         cv2.imshow('ASCII-art', np.array(ascii_image))
         key = cv2.waitKey(1)
         if key == ord("q"):
             break
     video.release()
-    # output.release()
+    output.release()
     cv2.destroyAllWindows()
 
 
@@ -202,7 +212,7 @@ def construct_output_filename(args: argparse):
     elif args.mode == Modes.COLOR.value:
         output_file += os.sep + "ascii.png"
     elif args.mode == Modes.VIDEO.value:
-        output_file += os.sep + "ascii.avi"
+        output_file += os.sep + "ascii.mp4"
     return output_file
 
 
