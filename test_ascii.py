@@ -41,9 +41,9 @@ class MyTestCase(unittest.TestCase):
         pixel1 = (0, 0, 0)
         pixel2 = (255, 255, 255)
         pixel3 = (45, 23, 124)
-        self.assertEqual('$', ascii.map_pixel_to_ascii(pixel1))
-        self.assertEqual('\'', ascii.map_pixel_to_ascii(pixel2))
-        self.assertEqual('*', ascii.map_pixel_to_ascii(pixel3))
+        self.assertEqual('`', ascii.map_pixel_to_ascii(pixel1))
+        self.assertEqual('@', ascii.map_pixel_to_ascii(pixel2))
+        self.assertEqual('+', ascii.map_pixel_to_ascii(pixel3))
 
     def test_constructing_output_filename_with_user_input(self):
         args = ["pic.png", "-od", r"C:\test", "-m", "bw"]
