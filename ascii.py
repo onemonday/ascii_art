@@ -32,7 +32,7 @@ class Modes(enum.Enum):
     VIDEO = "v"
 
 
-def resize_image(image: Image, new_width: int) -> Image:
+def resize_image(image: Image, new_width: int) -> PIL.Image:
     """
     Resizes the image depending on selected width
 
@@ -46,7 +46,7 @@ def resize_image(image: Image, new_width: int) -> Image:
     return image.resize((new_width, new_height))
 
 
-def get_pixel_brightness(pixel: tuple):
+def get_pixel_brightness(pixel: tuple) -> int:
     """
     Calculates the pixel brightness
 
@@ -80,9 +80,10 @@ def convert_image_to_ascii(image: Image, args: argparse, is_video: bool = False)
     :param args: parsed console arguments
     :return: string declaring program status
     """
-    if args.width is None and not is_video:
-        logging.info("custom width was not defined. " +
-                     "ASCII-art will be the same size as the picture")
+    if args.width is None:
+        if not is_video:
+            logging.info("custom width was not defined. " +
+                         "ASCII-art will be the same size as the picture")
     elif args.width > 0:
         image = resize_image(image, args.width)
     elif args.width < 0 and not is_video:
@@ -122,7 +123,7 @@ def convert_image_to_ascii(image: Image, args: argparse, is_video: bool = False)
         write_to_file(construct_output_filename(args), ascii_art_image_str)
 
 
-def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple):
+def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple) -> PIL.Image:
     """
         Draws ASCII-art strinng into the PIL image and saves it
 
@@ -154,6 +155,10 @@ def draw_colored_image(ascii_art_string: str, pixels: list, size: tuple):
 
 
 def convert_video_to_ascii(args: argparse):
+    """
+    Converts video into ASCII-art video .avi file
+    :param args: parsed console arguments
+    """
     try:
         video = cv2.VideoCapture(args.image)
     except FileNotFoundError:
@@ -161,41 +166,45 @@ def convert_video_to_ascii(args: argparse):
         return
 
     new_height, new_width = None, None
+    fps = video.get(cv2.CAP_PROP_FPS)
+    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
 
     if args.width is None:
         logging.info("custom width was not defined. " +
                      "ASCII-art will be the same size as the video")
-        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) * JPG_CHAR_SAFE_BOX_HEIGHT
+        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) * JPG_CHAR_SAFE_BOX_WIDTH
     elif args.width < 0:
         logging.warning("user has entered width below zero. " +
                         "ASCII-art will be the same size as the picture")
-        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) * JPG_CHAR_SAFE_BOX_HEIGHT
+        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) * JPG_CHAR_SAFE_BOX_WIDTH
     elif args.width > 0:
         ratio = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) / int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        new_height = int(args.width * ratio)
-        new_width = args.width
+        new_height = int(args.width * ratio) * JPG_CHAR_SAFE_BOX_HEIGHT
+        new_width = args.width * JPG_CHAR_SAFE_BOX_WIDTH
 
-    output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*'DIVX'), video.get(cv2.CAP_PROP_FPS), (new_width, new_height))
+    output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*'MJPG'), fps, (new_width, new_height))
     while True:
-        _,image = video.read()
-        if image is None:
-            break
-        image = Image.fromarray(image)
-        ascii_image = convert_image_to_ascii(image, args, is_video=True)
+        ret, image = video.read()
+        if ret is True:
+            image = Image.fromarray(image)
+            ascii_image = convert_image_to_ascii(image, args, is_video=True)
 
-        output.write(np.array(ascii_image))
-        cv2.imshow('ASCII-art', np.array(ascii_image))
-        key = cv2.waitKey(1)
-        if key == ord("q"):
+            output.write(np.array(ascii_image))
+            cv2.imshow('ASCII-art', np.array(ascii_image))
+            key = cv2.waitKey(1)
+            if key == ord("q"):
+                break
+        else:
             break
     video.release()
     output.release()
     cv2.destroyAllWindows()
 
 
-def construct_output_filename(args: argparse):
+def construct_output_filename(args: argparse) -> str:
     """
     Constructs output filename depending on user's choice.
     If user typed output directory in -od, output file will be there.
@@ -212,7 +221,7 @@ def construct_output_filename(args: argparse):
     elif args.mode == Modes.COLOR.value:
         output_file += os.sep + "ascii.png"
     elif args.mode == Modes.VIDEO.value:
-        output_file += os.sep + "ascii.mp4"
+        output_file += os.sep + "ascii.avi"
     return output_file
 
 
@@ -246,7 +255,7 @@ def parse_arguments(args: argparse):
     parser.add_argument("image", help="path to the image")
     parser.add_argument("-od", "--output_dir", type=str, help="output directory")
     parser.add_argument("-w", "--width", type=int, help="width of ASCII-art file")
-    parser.add_argument("-m", "--mode", type=str, required=True, help="program mode: colored (c) or monochrome (bw)",
+    parser.add_argument("-m", "--mode", type=str, required=True, help="program mode: colored (c), monochrome (bw) or video (v)",
                         choices=("c", "bw", "v"))
     return parser.parse_args(args)
 
