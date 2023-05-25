@@ -32,7 +32,7 @@ class Modes(enum.Enum):
     VIDEO = "v"
 
 
-def resize_image(image: Image, new_width: int) -> PIL.Image:
+def resize_image(image: Image, new_width: int, is_video: bool = False) -> PIL.Image:
     """
     Resizes the image depending on selected width
 
@@ -40,10 +40,64 @@ def resize_image(image: Image, new_width: int) -> PIL.Image:
     :param new_width: positive integer with new width
     :return: resized PIL Image object
     """
-    width, height = image.size
-    ratio = height / width
-    new_height = int(new_width * ratio)
+    new_height = None
+
+    if new_width is None:
+        if not is_video:
+            logging.info("custom width was not defined. " +
+                         "ASCII-art will be the same size as the picture")
+        new_height = image.size[1]
+        new_width = image.size[0]
+    elif new_width == 0:
+        if not is_video:
+            logging.warning("user has entered zero width. " +
+                            "ASCII-art will be the same size as the picture")
+        new_height = image.size[1]
+    elif new_width < 0:
+        if not is_video:
+            logging.warning("user has entered width below zero. " +
+                            "ASCII-art will be the same size as the picture")
+        new_height = image.size[1]
+    elif new_width > 0:
+        width, height = image.size
+        ratio = height / width
+        new_height = int(new_width * ratio)
+    else:
+        raise NotImplementedError("unexpected error occurred while resizing image")
+
     return image.resize((new_width, new_height))
+
+
+def resize_video(width: int, height: int, new_width: int) -> tuple[int, int]:
+    """
+    Resizes the video depending on selected width
+
+    :param width: width of the video
+    :param height: height of the video
+    :param new_width: new width of the video
+    :return: tuple with new width and height
+    """
+    if new_width is None:
+        logging.info("custom width was not defined. " +
+                     "ASCII-art will be the same size as the video")
+        result_height = height * JPG_CHAR_SAFE_BOX_HEIGHT
+        result_width = width * JPG_CHAR_SAFE_BOX_WIDTH
+    elif new_width == 0:
+        logging.info("custom width was set to 0. " +
+                     "ASCII-art will be the same size as the video")
+        result_height = height * JPG_CHAR_SAFE_BOX_HEIGHT
+        result_width = width * JPG_CHAR_SAFE_BOX_WIDTH
+    elif new_width < 0:
+        logging.warning("user has entered width below zero. " +
+                        "ASCII-art will be the same size as the video")
+        result_height = height * JPG_CHAR_SAFE_BOX_HEIGHT
+        result_width = width * JPG_CHAR_SAFE_BOX_WIDTH
+    elif new_width > 0:
+        ratio = height / width
+        result_height = int(new_width * ratio) * JPG_CHAR_SAFE_BOX_HEIGHT
+        result_width = new_width * JPG_CHAR_SAFE_BOX_WIDTH
+
+    return result_width, result_height
 
 
 def get_pixel_brightness(pixel: tuple) -> int:
@@ -80,15 +134,11 @@ def convert_image_to_ascii(image: Image, args: argparse, is_video: bool = False)
     :param args: parsed console arguments
     :return: string declaring program status
     """
-    if args.width is None:
-        if not is_video:
-            logging.info("custom width was not defined. " +
-                         "ASCII-art will be the same size as the picture")
-    elif args.width > 0:
-        image = resize_image(image, args.width)
-    elif args.width < 0 and not is_video:
-        logging.warning("user has entered width below zero. " +
-                        "ASCII-art will be the same size as the picture")
+    try:
+        image = resize_image(image, args.width, is_video)
+    except NotImplementedError:
+        logging.error("unexpected error occurred while resizing image")
+        sys.exit(3)
 
     if args.mode == Modes.COLOR.value:
         global ASCII_CHARS
@@ -165,27 +215,12 @@ def convert_video_to_ascii(args: argparse):
         logging.error("video file was not found")
         return
 
-    new_height, new_width = None, None
     fps = video.get(cv2.CAP_PROP_FPS)
-    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    width = video.get(cv2.CAP_PROP_FRAME_WIDTH)
+    size = resize_video(width, height, args.width)
 
-    if args.width is None:
-        logging.info("custom width was not defined. " +
-                     "ASCII-art will be the same size as the video")
-        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) * JPG_CHAR_SAFE_BOX_HEIGHT
-        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) * JPG_CHAR_SAFE_BOX_WIDTH
-    elif args.width < 0:
-        logging.warning("user has entered width below zero. " +
-                        "ASCII-art will be the same size as the picture")
-        new_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) * JPG_CHAR_SAFE_BOX_HEIGHT
-        new_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) * JPG_CHAR_SAFE_BOX_WIDTH
-    elif args.width > 0:
-        ratio = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) / int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        new_height = int(args.width * ratio) * JPG_CHAR_SAFE_BOX_HEIGHT
-        new_width = args.width * JPG_CHAR_SAFE_BOX_WIDTH
-
-    output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*'MJPG'), fps, (new_width, new_height))
+    output = cv2.VideoWriter(construct_output_filename(args), cv2.VideoWriter_fourcc(*'MJPG'), fps, size)
     while True:
         ret, image = video.read()
         if ret is True:
@@ -241,6 +276,9 @@ def write_to_file(output_filename: str, ascii_art_image: str):
     except FileNotFoundError:
         logging.error("output file directory is incorrect")
         sys.exit(3)
+    except Exception:
+        logging.error("unexpected error occurred while writing to file")
+        sys.exit(4)
 
 
 def parse_arguments(args: argparse):
